@@ -6,13 +6,14 @@ library(Rocc)
 
 
 df <-
-  read.table("data/all_anopheles.txt", header = T)
+  read.table("data/all_anopheles.txt", header = T) %>%
+  rename(species = Especie, 
+         decimalLatitude = Latitude, 
+         decimalLongitude = longitude) %>%
+  mutate(species = gsub("_", " ", species))
 
 splist <-
-  levels(as.factor(df$Especie))
-
-splist <-
-  gsub("_", " ", splist)
+  levels(as.factor(df$species))
 
 keys <-
   lapply(
@@ -26,7 +27,8 @@ occ_anopheles <- occ_download(
   pred_in("taxonKey", keys),
   pred("hasCoordinate", TRUE),
   format = "SIMPLE_CSV",
-  user = "gratidutra", pwd = "iNm!cD!U6@3LhYH", email = "gratirodrigues.gdr@gmail.com"
+  user = "gratidutra", pwd = "iNm!cD!U6@3LhYH",
+  email = "gratirodrigues.gdr@gmail.com"
 )
 
 z <- occ_download_get(occ_anopheles)
@@ -42,44 +44,58 @@ all_species_gbif <-
 # ver package species link
 # trocar para variavel de ambiente as credenciais
 
-all_species_gbif <-
-  all_species_gbif[
-    !duplicated(paste(
-      all_species_gbif$species, all_species_gbif$decimalLongitude,
-      all_species_gbif$decimalLatitude
-    )),
-  ]
-
-
-# leaflet(all_species_gbif) %>%
-#   addTiles() %>%
-#   addMarkers(
-#     lng = ~decimalLongitude, lat = ~decimalLatitude,
-#     popup = paste(all_species_gbif$decimalLongitude, all_species_gbif$decimalLatitude)
-#   )
-
-
 # Species Link ------------------------------------------------------------
 
-all_species_splink_raw <- 
-  rspeciesLink(filename = "all_species_splink",
-                     species = splist,
-                     Coordinates = "Yes",
-                     CoordinatesQuality = "Good")
+all_species_splink_raw <-
+  rspeciesLink(
+    filename = "all_species_splink",
+    species = splist,
+    Coordinates = "Yes",
+    CoordinatesQuality = "Good"
+  )
 
-all_species_splink <-
-  all_species_splink_raw[
+all_species_splink <- all_species_splink_raw %>%
+  rename(species = scientificName) %>%
+  select(species, decimalLatitude, decimalLongitude) %>%
+  mutate(
+    decimalLatitude = as.numeric(decimalLatitude),
+    decimalLongitude = as.numeric(decimalLongitude)
+  )
+
+
+# bind dfs api ------------------------------------------------------------
+
+anopheles_df <-
+  all_species_gbif %>%
+  bind_rows(all_species_splink, df)
+
+
+anopheles_df <-
+  anopheles_df[
     !duplicated(paste(
-      all_species_splink_raw$scientificName,
-      all_species_splink_raw$decimalLongitude,
-      all_species_splink_raw$decimalLatitude
+      anopheles_df$species,
+      anopheles_df$decimalLongitude,
+      anopheles_df$decimalLatitude
     )),
   ]
 
-all_species_splink <- all_species_splink %>%
-  rename(species = scientificName) %>%
-  select(species, decimalLatitude, decimalLongitude) %>%
-  mutate(decimalLatitude = as.numeric(decimalLatitude),
-         decimalLongitude = as.numeric(decimalLongitude))
+# tratamento da escrita das espécies
 
-all_species_gbif %>% bind_rows(all_species_splink)
+levels(as.factor(anopheles_df$species))
+
+teste <- anopheles_df %>% 
+  mutate(species = case_when(
+    species == 'Anopheles albitarsis?' ~ 'Anopheles albitarsis',
+    species == 'Anopheles oswaldoi?' ~ 'Anopheles oswaldoi' ,
+    species == 'Anopheles triannulatus s.l.' ~ 'Anopheles triannulatus',
+    species == 'Anopheles albimanus section' ~ 'Anopheles albimanus',
+    species == 'Anopheles albitarsis s.l.' ~ 'Anopheles albitarsis',
+    species == 'Anopheles aquasalis?' ~ 'Anopheles aquasalis',
+    species == 'Anopheles argyritarsis section' ~ 'Anopheles argyritarsis',
+    species == 'Anopheles fluminensis *' ~ 'Anopheles fluminensis',
+    species == 'Anopheles mediopunctatus *' ~ 'Anopheles mediopunctatus',
+    species == 'Anopheles rangeli?' ~ 'Anopheles rangeli',
+    TRUE ~ species
+    ))
+
+levels(as.factor(teste$species))
