@@ -3,13 +3,15 @@ library(tidyverse)
 library(rgbif)
 library(leaflet)
 library(Rocc)
-
+source("functions.R")
 
 df <-
   read.table("data/all_anopheles.txt", header = T) %>%
-  rename(species = Especie, 
-         decimalLatitude = Latitude, 
-         decimalLongitude = longitude) %>%
+  rename(
+    species = Especie,
+    decimalLatitude = Latitude,
+    decimalLongitude = longitude
+  ) %>%
   mutate(species = gsub("_", " ", species))
 
 splist <-
@@ -41,7 +43,6 @@ all_species_gbif <-
   drop_na()
 
 
-# ver package species link
 # trocar para variavel de ambiente as credenciais
 
 # Species Link ------------------------------------------------------------
@@ -63,39 +64,44 @@ all_species_splink <- all_species_splink_raw %>%
   )
 
 
-# bind dfs api ------------------------------------------------------------
+# Unindo e tratando o df final--------------------------------------------------
 
 anopheles_df <-
   all_species_gbif %>%
   bind_rows(all_species_splink, df)
 
-
-anopheles_df <-
-  anopheles_df[
-    !duplicated(paste(
-      anopheles_df$species,
-      anopheles_df$decimalLongitude,
-      anopheles_df$decimalLatitude
-    )),
-  ]
-
 # tratamento da escrita das espécies
 
 levels(as.factor(anopheles_df$species))
 
-teste <- anopheles_df %>% 
+anopheles_df <- anopheles_df %>%
   mutate(species = case_when(
-    species == 'Anopheles albitarsis?' ~ 'Anopheles albitarsis',
-    species == 'Anopheles oswaldoi?' ~ 'Anopheles oswaldoi' ,
-    species == 'Anopheles triannulatus s.l.' ~ 'Anopheles triannulatus',
-    species == 'Anopheles albimanus section' ~ 'Anopheles albimanus',
-    species == 'Anopheles albitarsis s.l.' ~ 'Anopheles albitarsis',
-    species == 'Anopheles aquasalis?' ~ 'Anopheles aquasalis',
-    species == 'Anopheles argyritarsis section' ~ 'Anopheles argyritarsis',
-    species == 'Anopheles fluminensis *' ~ 'Anopheles fluminensis',
-    species == 'Anopheles mediopunctatus *' ~ 'Anopheles mediopunctatus',
-    species == 'Anopheles rangeli?' ~ 'Anopheles rangeli',
+    species == "Anopheles albitarsis?" ~ "Anopheles albitarsis",
+    species == "Anopheles oswaldoi?" ~ "Anopheles oswaldoi",
+    species == "Anopheles triannulatus s.l." ~ "Anopheles triannulatus",
+    species == "Anopheles albimanus section" ~ "Anopheles albimanus",
+    species == "Anopheles albitarsis s.l." ~ "Anopheles albitarsis",
+    species == "Anopheles aquasalis?" ~ "Anopheles aquasalis",
+    species == "Anopheles argyritarsis section" ~ "Anopheles argyritarsis",
+    species == "Anopheles fluminensis *" ~ "Anopheles fluminensis",
+    species == "Anopheles mediopunctatus *" ~ "Anopheles mediopunctatus",
+    species == "Anopheles rangeli?" ~ "Anopheles rangeli",
     TRUE ~ species
-    ))
+  ))
 
-levels(as.factor(teste$species))
+levels(as.factor(anopheles_df$species))
+
+# removendo as duplicatas
+
+anopheles_processed <-
+  anopheles_processed[
+    !duplicated(paste(
+      anopheles_processed$species,
+      anopheles_processed$decimalLongitude,
+      anopheles_processed$decimalLatitude
+    )),
+  ]
+
+dir_create("data/processed")
+
+write.csv(anopheles_processed, "data/processed/anopheles_processed.csv")
