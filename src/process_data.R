@@ -6,7 +6,7 @@ library(Rocc)
 source("functions.R")
 
 df <-
-  read.table("data/all_anopheles.txt", header = T) %>%
+  read.table("data/raw/all_anopheles.txt", header = T) %>%
   rename(
     species = Especie,
     decimalLatitude = Latitude,
