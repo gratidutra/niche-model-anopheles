@@ -1,8 +1,12 @@
 # https://liibre.github.io/Rocc/articles/articles/using_rspeciesLink.html
+
 library(tidyverse)
 library(rgbif)
 library(leaflet)
 library(Rocc)
+library(rgdal)
+library(rgeos)
+
 source("functions.R")
 
 df <-
@@ -94,14 +98,52 @@ levels(as.factor(anopheles_df$species))
 # removendo as duplicatas
 
 anopheles_processed <-
-  anopheles_processed[
+  anopheles_df[
     !duplicated(paste(
-      anopheles_processed$species,
-      anopheles_processed$decimalLongitude,
-      anopheles_processed$decimalLatitude
+      anopheles_df$species,
+      anopheles_df$decimalLongitude,
+      anopheles_df$decimalLatitude
     )),
   ]
 
 dir_create("data/processed")
 
+anopheles_processed <- 
+  anopheles_processed %>%
+  mutate(decimalLongitude = case_when(
+    decimalLongitude == -546264.0000 ~ -54.6264, 
+    TRUE ~ decimalLongitude))
+
 write.csv(anopheles_processed, "data/processed/anopheles_processed.csv")
+
+kmeans <- anopheles_processed %>% 
+  group_by(decimalLatitude, decimalLongitude) %>%
+  summarise(rich = n_distinct(species))
+
+write.csv(kmeans, "data/processed/kmeans.csv")
+
+
+# teste crop --------------------------------------------------------------
+
+neotropic <-
+  readOGR(
+    dsn = ("data/raw/raster"),
+    layer = "Neotropic",
+    verbose = FALSE
+  )
+
+coordinates(anopheles_processed) <- 
+  ~decimalLongitude+decimalLatitude
+
+proj4string(anopheles_processed) <- 
+  proj4string(neotropic)
+
+sp <- 
+  SpatialPoints(anopheles_processed, 
+                    proj4string=CRS(proj4string(neotropic)))
+spsel <- 
+  sp[neotropic]
+
+plot(anopheles_processed)
+
+#ver o join, conferir se vai dar considerando as espécies duplicadas
