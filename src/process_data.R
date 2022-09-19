@@ -9,6 +9,8 @@ library(rgeos)
 library(raster)
 library(sp)
 library(maptools)
+library(tmap)
+library(sf)
 
 source("functions.R")
 
@@ -136,7 +138,7 @@ neotropic <-
     verbose = FALSE
   )
 
-# remoção dos pontos fora do shape
+# identificando pontos fora do shape
 
 anopheles_processed2["inout"] <- over(
   SpatialPoints(anopheles_processed[
@@ -145,14 +147,20 @@ anopheles_processed2["inout"] <- over(
   as(neotropic, "SpatialPolygons")
 )
 
+
+# dropando pontos fora do shape
+
 anopheles_processed3 <- anopheles_processed2 %>%
   drop_na(.)
+
+
+# criando objeto pro plot via tmap e plotando
 
 anopheles_points_plot <- anopheles_processed3 %>%
   st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), crs = 4326) %>%
   st_cast("POINT")
 
 tm_shape(neotropic) +
-  tm_polygons("#f0f0f0f0", border.alpha = 0.3) +
+  tm_polygons(border.alpha = 0.3) +
   tm_shape(anopheles_points_plot) +
   tm_dots(size = 0.05)
