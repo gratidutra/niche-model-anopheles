@@ -113,6 +113,8 @@ anopheles_processed1 <-
 
 dir_create("data/processed")
 
+# arrumando pontos que deram ruim no processamento
+
 anopheles_processed2 <-
   anopheles_processed %>%
   mutate(decimalLongitude = case_when(
@@ -120,16 +122,8 @@ anopheles_processed2 <-
     TRUE ~ decimalLongitude
   ))
 
-write.csv(anopheles_processed2, "data/processed/anopheles_processed.csv")
 
-kmeans <- anopheles_processed2 %>%
-  group_by(decimalLatitude, decimalLongitude) %>%
-  summarise(rich = n_distinct(species))
-
-write.csv(kmeans, "data/processed/kmeans.csv")
-
-
-# teste crop --------------------------------------------------------------
+# shapefile
 
 neotropic <-
   readOGR(
@@ -147,11 +141,21 @@ anopheles_processed2["inout"] <- over(
   as(neotropic, "SpatialPolygons")
 )
 
-
 # dropando pontos fora do shape
 
 anopheles_processed3 <- anopheles_processed2 %>%
   drop_na(.)
+
+# salvando csv
+
+write.csv(anopheles_processed3, "data/processed/anopheles_processed.csv")
+
+
+kmeans <- anopheles_processed3 %>%
+  group_by(decimalLatitude, decimalLongitude) %>%
+  summarise(rich = n_distinct(species))
+
+write.csv(kmeans, "data/processed/kmeans.csv")
 
 
 # criando objeto pro plot via tmap e plotando
