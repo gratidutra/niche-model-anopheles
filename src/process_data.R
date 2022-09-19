@@ -1,5 +1,3 @@
-# https://liibre.github.io/Rocc/articles/articles/using_rspeciesLink.html
-
 library(tidyverse)
 library(rgbif)
 library(leaflet)
@@ -150,6 +148,7 @@ anopheles_processed3 <- anopheles_processed2 %>%
 
 write.csv(anopheles_processed3, "data/processed/anopheles_processed.csv")
 
+# df para o kmeans 
 
 kmeans <- anopheles_processed3 %>%
   group_by(decimalLatitude, decimalLongitude) %>%
