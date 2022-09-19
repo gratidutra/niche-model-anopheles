@@ -6,6 +6,9 @@ library(leaflet)
 library(Rocc)
 library(rgdal)
 library(rgeos)
+library(raster)
+library(sp)
+library(maptools)
 
 source("functions.R")
 
@@ -97,7 +100,7 @@ levels(as.factor(anopheles_df$species))
 
 # removendo as duplicatas
 
-anopheles_processed <-
+anopheles_processed1 <-
   anopheles_df[
     !duplicated(paste(
       anopheles_df$species,
@@ -108,15 +111,16 @@ anopheles_processed <-
 
 dir_create("data/processed")
 
-anopheles_processed <- 
+anopheles_processed2 <-
   anopheles_processed %>%
   mutate(decimalLongitude = case_when(
-    decimalLongitude == -546264.0000 ~ -54.6264, 
-    TRUE ~ decimalLongitude))
+    decimalLongitude == -546264.0000 ~ -54.6264,
+    TRUE ~ decimalLongitude
+  ))
 
-write.csv(anopheles_processed, "data/processed/anopheles_processed.csv")
+write.csv(anopheles_processed2, "data/processed/anopheles_processed.csv")
 
-kmeans <- anopheles_processed %>% 
+kmeans <- anopheles_processed2 %>%
   group_by(decimalLatitude, decimalLongitude) %>%
   summarise(rich = n_distinct(species))
 
@@ -132,18 +136,23 @@ neotropic <-
     verbose = FALSE
   )
 
-coordinates(anopheles_processed) <- 
-  ~decimalLongitude+decimalLatitude
+# remoção dos pontos fora do shape
 
-proj4string(anopheles_processed) <- 
-  proj4string(neotropic)
+anopheles_processed2["inout"] <- over(
+  SpatialPoints(anopheles_processed[
+    , c("decimalLongitude", "decimalLatitude")
+  ], proj4string = CRS(projection(neotropic))),
+  as(neotropic, "SpatialPolygons")
+)
 
-sp <- 
-  SpatialPoints(anopheles_processed, 
-                    proj4string=CRS(proj4string(neotropic)))
-spsel <- 
-  sp[neotropic]
+anopheles_processed3 <- anopheles_processed2 %>%
+  drop_na(.)
 
-plot(anopheles_processed)
+anopheles_points_plot <- anopheles_processed3 %>%
+  st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), crs = 4326) %>%
+  st_cast("POINT")
 
-#ver o join, conferir se vai dar considerando as espécies duplicadas
+tm_shape(neotropic) +
+  tm_polygons("#f0f0f0f0", border.alpha = 0.3) +
+  tm_shape(anopheles_points_plot) +
+  tm_dots(size = 0.05)
