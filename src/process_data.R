@@ -12,6 +12,7 @@ library(sf)
 
 source("functions.R")
 
+funtions
 df <-
   read.table("data/raw/all_anopheles.txt", header = T) %>%
   rename(
@@ -167,3 +168,14 @@ tm_shape(neotropic) +
   tm_polygons(border.alpha = 0.3) +
   tm_shape(anopheles_points_plot) +
   tm_dots(size = 0.05)
+
+# download camadas present e recorte
+
+current_layer <- 
+  getData(
+    "worldclim", var = "bio", res = 10
+  )
+
+raster_neotropic_list <- 
+  crop_raster(current_layer@layers, neotropic)
+
