@@ -115,12 +115,11 @@ dir_create("data/processed")
 # arrumando pontos que deram ruim no processamento
 
 anopheles_processed2 <-
-  anopheles_processed %>%
+  anopheles_processed1 %>%
   mutate(decimalLongitude = case_when(
     decimalLongitude == -546264.0000 ~ -54.6264,
     TRUE ~ decimalLongitude
   ))
-
 
 # shapefile
 
@@ -134,7 +133,7 @@ neotropic <-
 # identificando pontos fora do shape
 
 anopheles_processed2["inout"] <- over(
-  SpatialPoints(anopheles_processed[
+  SpatialPoints(anopheles_processed2[
     , c("decimalLongitude", "decimalLatitude")
   ], proj4string = CRS(projection(neotropic))),
   as(neotropic, "SpatialPolygons")
@@ -142,16 +141,18 @@ anopheles_processed2["inout"] <- over(
 
 # dropando pontos fora do shape
 
-anopheles_processed3 <- anopheles_processed2 %>%
+anopheles_processed3 <-
+  anopheles_processed2 %>%
   drop_na(.)
 
 # salvando csv
 
 write.csv(anopheles_processed3, "data/processed/anopheles_processed.csv")
 
-# df para o kmeans 
+# df para o kmeans
 
-kmeans <- anopheles_processed3 %>%
+kmeans <-
+  anopheles_processed3 %>%
   group_by(decimalLatitude, decimalLongitude) %>%
   summarise(rich = n_distinct(species))
 
@@ -160,7 +161,8 @@ write.csv(kmeans, "data/processed/kmeans.csv")
 
 # criando objeto pro plot via tmap e plotando
 
-anopheles_points_plot <- anopheles_processed3 %>%
+anopheles_points_plot <-
+  anopheles_processed3 %>%
   st_as_sf(coords = c("decimalLongitude", "decimalLatitude"), crs = 4326) %>%
   st_cast("POINT")
 
@@ -171,11 +173,40 @@ tm_shape(neotropic) +
 
 # download camadas present e recorte
 
-current_layer <- 
+current_layer <-
   getData(
-    "worldclim", var = "bio", res = 10
+    "worldclim",
+    var = "bio", res = 10
   )
 
-raster_neotropic_list <- 
+raster_neotropic_list <-
   crop_raster(current_layer@layers, neotropic)
+
+dir_create("data/workflow_maxent")
+dir_create("data/workflow_maxent/bioclim_neotropic")
+
+
+for (i in seq_along(raster_neotropic_list)) {
+  writeRaster(raster_neotropic_list[[i]],
+    paste0("data/workflow_maxent/bioclim_neotropic/bio", i, ".asc"),
+    overwrite = T
+  )
+}
+
+# criando um df por espécie
+
+sp_data_list <-
+  data_by_species(anopheles_processed3, splist)
+
+# buffer ------------------------------------------------------------------
+
+
+# save dataframe ----------------------------------------------------------
+
+for (i in seq_along(sp_data_list)) {
+  write.csv(sp_data_list[[i]],
+              paste0("data/processed", i, ".csv"),
+              row.names = F
+  )
+}
 
