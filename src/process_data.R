@@ -179,34 +179,20 @@ current_layer <-
     var = "bio", res = 10
   )
 
-raster_neotropic_list <-
-  crop_raster(current_layer@layers, neotropic)
 
 dir_create("data/workflow_maxent")
 dir_create("data/workflow_maxent/bioclim_neotropic")
 
-
-for (i in seq_along(raster_neotropic_list)) {
-  writeRaster(raster_neotropic_list[[i]],
-    paste0("data/workflow_maxent/bioclim_neotropic/bio", i, ".asc"),
-    overwrite = T
-  )
-}
+raster_neotropic_list <-
+  crop_raster(current_layer@layers, neotropic, "data/workflow_maxent/bioclim_neotropic")
 
 # criando um df por espécie
 
+dir_create("data/processed/data_by_specie")
+
 sp_data_list <-
-  data_by_species(anopheles_processed3, splist)
+  data_by_species(anopheles_processed3, splist, "data/processed/data_by_specie")
 
 # buffer ------------------------------------------------------------------
 
-
-# save dataframe ----------------------------------------------------------
-
-for (i in seq_along(sp_data_list)) {
-  write.csv(sp_data_list[[i]],
-              paste0("data/processed", i, ".csv"),
-              row.names = F
-  )
-}
 
