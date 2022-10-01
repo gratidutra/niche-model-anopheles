@@ -9,6 +9,7 @@ library(sp)
 library(maptools)
 library(tmap)
 library(sf)
+library(ellipsenm)
 
 source("functions.R")
 
@@ -186,13 +187,90 @@ dir_create("data/workflow_maxent/bioclim_neotropic")
 raster_neotropic_list <-
   crop_raster(current_layer@layers, neotropic, "data/workflow_maxent/bioclim_neotropic")
 
-# criando um df por espécie
+
+#  buffer & split ---------------------------------------------------------
 
 dir_create("data/processed/data_by_specie")
 
 sp_data_list <-
-  data_by_species(anopheles_processed3, splist, "data/processed/data_by_specie")
+  data_by_species(anopheles_processed3, splist, path = "data/processed/data_by_specie")
 
-# buffer ------------------------------------------------------------------
+#------------------Principal component analysis and projections-----------------
+# PCA and projections
+dir_create("data/workflow_maxent/an_albimanus")
+dir.create("data/workflow_maxent/an_albimanus/pcas")
+dir.create("data/workflow_maxent/an_albimanus/pcas/pca_referenceLayers")
+dir.create("data/workflow_maxent/pcas/pca_proj")
+
+s1 <- 
+  spca(
+    layers_stack = raster_neotropic_list, layers_to_proj = raster_neotropic_list,
+    sv_dir = "data/workflow_maxent/an_albimanus/pcas/pca_referenceLayers", 
+    layers_format = ".asc",
+    sv_proj_dir = "data/workflow_maxent/an_albimanus/pcas/pca_proj"
+  )
+
+# Read the pca object (output from ntbox function)
+
+f1 <- 
+  readRDS(
+    "data/workflow_maxent/an_albimanus/pcas/pca_referenceLayers/pca_object22_10_01_19_16.rds"
+  )
+
+# Summary
+
+f2 <- 
+  summary(f1)
+
+# The scree plot
+dir_create('outputs')
+dir_create('outputs/an_albimanus')
 
 
+png(
+  filename = "outputs/an_albimanus/screeplot_an_albimanus.png",
+  width = 1200 * 1.3, height = 1200 * 1.3, res = 300
+)
+plot(f2$importance[3, 1:5] * 100,
+     xlab = "Principal component",
+     ylab = "Percentage of variance explained", ylim = c(0, 100),
+     type = "b", frame.plot = T, cex = 1.5
+)
+points(f2$importance[2, 1:5] * 100, pch = 17, cex = 1.5)
+lines(f2$importance[2, 1:5] * 100, lty = 2, lwd = 1.5)
+legend(
+  x = 3.5, y = 60, legend = c("Cumulative", "Non-cumulative"),
+  lty = c(1, 2), pch = c(21, 17), bty = "n", cex = 0.85, pt.bg = "white"
+)
+
+dev.off()
+
+# PCs used were pc: 1, 2, 3, 4, 
+dir_create("data/workflow_maxent/an_albimanus/Model_calibration")
+dir_create("data/workflow_maxent/an_albimanus/Model_calibration/PCs_M")
+
+nums <- 1:4
+
+file.copy(
+  from = paste0("data/workflow_maxent/an_albimanus/pcas/pca_referenceLayers/PC0", nums, ".asc"),
+  to = paste0("data/workflow_maxent/an_albimanus/Model_calibration/PCs_M/PC0", nums, ".asc")
+)
+
+dir_create("data/workflow_maxent/an_albimanus/G_Variables")
+dir_create("data/workflow_maxent/an_albimanus/G_Variables/Set_1")
+dir_create("data/workflow_maxent/an_albimanus/G_Variables/Set_1/Current")
+
+# Aqui da para testar o var comb 
+
+file.copy(
+  from = paste0(
+    "data/workflow_maxent/an_albimanus/Model_calibration/PCs_M/PC0",
+    nums,
+    ".asc"
+  ),
+  to = paste0(
+    "data/workflow_maxent/an_albimanus/G_Variables/Set_1/Current/PC0",
+    nums,
+    ".asc"
+  )
+)

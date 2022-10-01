@@ -28,15 +28,18 @@ crop_raster <- function(raster_list, shp, path) {
 
 # função para splitar dataframes por espécies
 
-data_by_species <- function(data, list_species, path) {
+data_by_species <- function(data, list_species, col_long = "decimalLongitude",
+                            col_lat = "decimalLatitude", thin_dist = 25, path) {
   list_data <- list()
+  list_data_thin <- list()
   for (i in seq_along(list_species)) {
     list_data[[i]] <- data %>%
       dplyr::filter(species == list_species[[i]])
-    write.csv(list_data[[i]],
-      paste0(path, "/", list_data[[i]]$species[1], ".csv"),
-      row.names = F
+    list_data_thin[[i]] <- thin_data(list_data[[i]], col_long, col_lat,
+      thin_distance = thin_dist, save = T,
+      name = paste0(path, "/", list_data[[i]]$species[1], ".csv")
     )
   }
-  return(list_data)
+  result <- c(list_data, list_data_thin)
+  return(result)
 }
