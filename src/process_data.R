@@ -10,6 +10,7 @@ library(maptools)
 library(tmap)
 library(sf)
 library(ellipsenm)
+library(kuenm)
 
 source("functions.R")
 
@@ -191,13 +192,22 @@ raster_neotropic_list <-
 #  buffer & split ---------------------------------------------------------
 
 dir_create("data/processed/data_by_specie")
+dir_create("data/workflow_maxent/an_albimanus")
 
 sp_data_list <-
   data_by_species(anopheles_processed3, splist, path = "data/processed/data_by_specie")
 
+# split para uma espécie
+
+kuenm_occsplit(
+  occ = sp_data_list[[1]], 
+  train.proportion = 0.7,
+  method = "random", save = T,
+  name = "data/workflow_maxent/an_albimanus/an_albimanus"
+)
+
 #------------------Principal component analysis and projections-----------------
 # PCA and projections
-dir_create("data/workflow_maxent/an_albimanus")
 dir.create("data/workflow_maxent/an_albimanus/pcas")
 dir.create("data/workflow_maxent/an_albimanus/pcas/pca_referenceLayers")
 dir.create("data/workflow_maxent/pcas/pca_proj")
