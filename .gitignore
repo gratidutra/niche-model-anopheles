@@ -12,3 +12,4 @@ dataset.keras
 .RDataTmp
 .RData
 .ipynb_checkpoints
+.env
